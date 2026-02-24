@@ -2,13 +2,21 @@ import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 const SECRET_KEY = 'super_secret_key_for_rbac';
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // Dummy users (passwords are hashed for demonstration purposes)
 const users = [
@@ -32,7 +40,7 @@ const authenticateToken = (req, res, next) => {
 
 app.post('/api/signup', async (req, res) => {
     const { username, password, name, role } = req.body;
-    
+
     if (!username || !password || !name || !role) {
         return res.status(400).json({ message: 'All fields are required.' });
     }
@@ -84,6 +92,11 @@ app.get('/api/protected', authenticateToken, (req, res) => {
     res.json({ message: `Welcome ${req.user.name}, you have access to this protected data as a ${req.user.role}.` });
 });
 
+// Catch-all route to serve the React app for unrecognized routes (client-side routing)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
+
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
